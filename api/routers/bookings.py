@@ -61,10 +61,17 @@ async def _available_courts(
     blocks_result = await db.execute(select(ScheduleBlock))
     all_blocks = blocks_result.scalars().all()
 
-    slot_date = slot_start.date()
+    settings = await _get_settings(db)
+    tz = ZoneInfo(settings.timezone)
+
+    # Always compare against local time so block definitions (in local time) are correct
+    local_start = slot_start.astimezone(tz) if slot_start.tzinfo else slot_start
+    local_end = slot_end.astimezone(tz) if slot_end.tzinfo else slot_end
+
+    slot_date = local_start.date()
     slot_weekday = slot_date.weekday()
-    slot_t_start = slot_start.time()
-    slot_t_end = slot_end.time()
+    slot_t_start = local_start.time().replace(tzinfo=None)
+    slot_t_end = local_end.time().replace(tzinfo=None)
 
     blocked_ids: set = set()   # int court_id or None (= all courts)
     released_ids: set = set()
