@@ -2,7 +2,8 @@ from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
-ASYNCPG_UNSUPPORTED_PARAMS = {"channel_binding"}
+_STRIP_PARAMS = {"channel_binding"}
+_SSL_REQUIRE_MODES = {"require", "verify-ca", "verify-full"}
 
 
 class Settings(BaseSettings):
@@ -18,8 +19,13 @@ class Settings(BaseSettings):
         elif v.startswith("postgresql://"):
             v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
         parsed = urlparse(v)
-        params = {k: vals[0] for k, vals in parse_qs(parsed.query, keep_blank_values=True).items()
-                  if k not in ASYNCPG_UNSUPPORTED_PARAMS}
+        qs = parse_qs(parsed.query, keep_blank_values=True)
+        sslmode = (qs.pop("sslmode", [None])[0] or "").lower()
+        for p in _STRIP_PARAMS:
+            qs.pop(p, None)
+        if sslmode in _SSL_REQUIRE_MODES:
+            qs["ssl"] = ["require"]
+        params = {k: vals[0] for k, vals in qs.items()}
         return urlunparse(parsed._replace(query=urlencode(params)))
     secret_key: str
     resend_api_key: str = ""
