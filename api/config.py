@@ -1,5 +1,8 @@
+from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+ASYNCPG_UNSUPPORTED_PARAMS = {"channel_binding"}
 
 
 class Settings(BaseSettings):
@@ -11,10 +14,13 @@ class Settings(BaseSettings):
         if v.startswith("sqlite"):
             return v
         if v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql+asyncpg://", 1)
-        if v.startswith("postgresql://"):
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
-        return v
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgresql://"):
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        parsed = urlparse(v)
+        params = {k: vals[0] for k, vals in parse_qs(parsed.query, keep_blank_values=True).items()
+                  if k not in ASYNCPG_UNSUPPORTED_PARAMS}
+        return urlunparse(parsed._replace(query=urlencode(params)))
     secret_key: str
     resend_api_key: str = ""
     from_email: str = "tennis@yourdomain.com"
