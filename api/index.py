@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from mangum import Mangum
 from api.routers import auth, users, courts, bookings, admin
 
 app = FastAPI(title="Tennis Club Booking", version="0.1.0")
@@ -23,7 +22,3 @@ app.include_router(admin.router)
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
-
-
-# Vercel serverless handler
-handler = Mangum(app, lifespan="off")
