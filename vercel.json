@@ -5,7 +5,7 @@
   ],
   "functions": {
     "api/index.py": {
-      "runtime": "python3.12",
+      "runtime": "@vercel/python@4.5.1",
       "maxDuration": 10
     }
   }
